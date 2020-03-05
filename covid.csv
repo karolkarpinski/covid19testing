@@ -1,0 +1,20 @@
+"","Positive test results","Negative test results","Pending","Total tested"
+"New York",11,49,38,98
+"Arizona",2,28,6,36
+"Arkansas",0,4,2,6
+"Colorado",0,37,21,58
+"Florida",9,31,69,109
+"Idaho",0,15,0,15
+"Illinois",5,165,27,197
+"Maryland",0,17,14,31
+"Michigan",0,8,0,8
+"Minnesota",0,22,10,32
+"Mississippi",0,0,0,NA
+"Nebraska",0,12,4,16
+"New Hampshire",2,16,4,22
+"Ohio",0,7,1,8
+"Oregon",3,45,13,61
+"South Dakota",0,0,0,0
+"Wisconsin",1,19,6,26
+"District of Columbia",0,6,2,8
+"Total",33,481,217,731

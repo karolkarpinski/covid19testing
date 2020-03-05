@@ -4,10 +4,9 @@ library(readr)
 library(readtext)
 library(curl)
 library(httr)
-library(magick)
-library(tesseract)
 library(stringr)
 library(magrittr)
+library(janitor)
 
 
 covid <- data.frame()
@@ -68,10 +67,63 @@ covid["Colorado", "Total tested"] <- covid["Colorado", "Positive test results"] 
 
 # Florida
 
-fl <- read_delim("http://www.floridahealth.gov/diseases-and-conditions/COVID-19/_documents/covid19-daily-numbers.txt", "*", col_names = FALSE)
-covid["Florida", "Positive test results"] <- as.numeric(fl[1,2]) + as.numeric(fl[1,3])
-covid["Florida", "Negative test results"] <- as.numeric(fl[1,5])
-covid["Florida", "Pending"] <- as.numeric(fl[1,4])
+fl <- read_html("http://www.floridahealth.gov/diseases-and-conditions/COVID-19/index.html")
+fl_positive_1 <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(1) %>%
+  html_text() %>%
+  str_split(" – ") %>%
+  extract2(1) %>%
+  extract(1) %>%
+  as.numeric()
+
+fl_positive_2 <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(2) %>%
+  html_text() %>%
+  str_split(" – ") %>%
+  extract2(1) %>%
+  extract(1) %>%
+  as.numeric()
+
+fl_positive_3 <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(3) %>%
+  html_text() %>%
+  str_split(" – ") %>%
+  extract2(1) %>%
+  extract(1) %>%
+  as.numeric()
+
+fl_positive_4 <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(4) %>%
+  html_text() %>%
+  str_split(" – ") %>%
+  extract2(1) %>%
+  extract(1) %>%
+  as.numeric()
+  
+
+covid["Florida", "Positive test results"] <- fl_positive_1 + fl_positive_2 + fl_positive_3 + fl_positive_4
+covid["Florida", "Negative test results"] <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(5) %>%
+  html_text() %>%
+  as.numeric()
+
+covid["Florida", "Pending"] <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(6) %>%
+  html_text() %>%
+  as.numeric()
+
 covid["Florida", "Total tested"] <- covid["Florida", "Positive test results"] + covid["Florida", "Negative test results"] + covid["Florida", "Pending"]
 
 # Idaho
@@ -335,4 +387,12 @@ covid["District of Columbia", "Pending"] <- dc %>%
   as.numeric()
 
 covid["District of Columbia", "Total tested"] <- covid["District of Columbia", "Positive test results"] + covid["District of Columbia", "Negative test results"] + covid["District of Columbia", "Pending"]
-  
+
+covid["Total", "Positive test results"] <- sum(covid[, "Positive test results"], na.rm = TRUE)
+covid["Total", "Negative test results"] <- sum(covid[, "Negative test results"], na.rm = TRUE)
+covid["Total", "Pending"] <- sum(covid[, "Pending"], na.rm = TRUE)
+covid["Total", "Total tested"] <- sum(covid[, "Total tested"], na.rm = TRUE)
+
+
+
+write.csv(covid, "covid.csv")
