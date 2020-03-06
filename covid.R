@@ -7,6 +7,10 @@ library(httr)
 library(stringr)
 library(magrittr)
 library(janitor)
+library(tidycensus)
+
+census_api_key("e2345a8d3580e64a9308aa5d869d4b415f245a22", install = TRUE)
+
 
 
 covid <- data.frame()
@@ -44,12 +48,27 @@ covid["Arizona", "Total tested"] <- covid["Arizona", "Positive test results"] + 
 ar <- read_html("https://www.healthy.arkansas.gov/programs-services/topics/novel-coronavirus")
 
 ar <- ar %>% 
-  html_node("table") %>%
-  html_table()
+  html_nodes("table")
 
-covid["Arkansas", "Positive test results"] <- as.numeric(ar[2,1])
-covid["Arkansas", "Negative test results"] <- as.numeric(str_extract(ar[2,4], "[0-9]+"))
-covid["Arkansas", "Pending"] <- as.numeric(ar[2,2])
+covid["Arkansas", "Positive test results"] <- ar %>%
+  html_nodes("tr") %>%
+  extract(3) %>%
+  html_text() %>%
+  str_extract("[0-9]+") %>%
+  as.numeric()
+
+covid["Arkansas", "Negative test results"] <- ar %>%
+  extract(4) %>%
+  html_text() %>%
+  str_extract("[0-9]+") %>%
+  as.numeric()
+
+covid["Arkansas", "Pending"] <- ar %>%
+  extract(2) %>%
+  html_text() %>%
+  str_extract("[0-9]+") %>%
+  as.numeric()
+
 covid["Arkansas", "Total tested"] <- covid["Arkansas", "Positive test results"] + covid["Arkansas", "Negative test results"] + covid["Arkansas", "Pending"]
 
 # Colorado
@@ -98,29 +117,21 @@ fl_positive_3 <- fl %>%
   extract(1) %>%
   as.numeric()
 
-fl_positive_4 <- fl %>%
-  html_node("block") %>%
-  html_nodes("div") %>%
-  extract(4) %>%
-  html_text() %>%
-  str_split(" – ") %>%
-  extract2(1) %>%
-  extract(1) %>%
-  as.numeric()
+
   
 
-covid["Florida", "Positive test results"] <- fl_positive_1 + fl_positive_2 + fl_positive_3 + fl_positive_4
+covid["Florida", "Positive test results"] <- fl_positive_1 + fl_positive_2 + fl_positive_3
 covid["Florida", "Negative test results"] <- fl %>%
   html_node("block") %>%
   html_nodes("div") %>%
-  extract(5) %>%
+  extract(4) %>%
   html_text() %>%
   as.numeric()
 
 covid["Florida", "Pending"] <- fl %>%
   html_node("block") %>%
   html_nodes("div") %>%
-  extract(6) %>%
+  extract(5) %>%
   html_text() %>%
   as.numeric()
 
@@ -220,25 +231,6 @@ covid["Minnesota", "Total tested"] <- covid["Minnesota", "Positive test results"
 
 # Mississippi
 
-ms <- read_html("https://msdh.ms.gov/msdhsite/_static/14,0,420.html")
-
-covid["Mississippi", "Positive test results"] <- ms %>%
-  html_node("ul.shadedBlue") %>%
-  html_nodes("li") %>%
-  extract(1) %>%
-  html_node("strong") %>%
-  html_text() %>%
-  as.numeric()
-
-covid["Mississippi", "Negative test results"] <- 0 # To update once their website is updated
-
-covid["Mississippi", "Pending"] <- ms %>%
-  html_node("ul.shadedBlue") %>%
-  html_nodes("li") %>%
-  extract(2) %>%
-  html_node("strong") %>%
-  html_text() %>%
-  as.numeric()
 
 # Montana - to OCR
 
@@ -331,9 +323,9 @@ sd <- sd %>%
   html_node("table") %>%
   html_table()
 
-covid["South Dakota", "Positive test results"] <- as.numeric(sd[1,2]) + as.numeric(sd[3,2])
+covid["South Dakota", "Positive test results"] <- as.numeric(sd[1,2])
 covid["South Dakota", "Negative test results"] <- as.numeric(sd[2,2])
-covid["South Dakota", "Pending"] <- as.numeric(sd[4,2])
+covid["South Dakota", "Pending"] <- as.numeric(sd[3,2])
 covid["South Dakota", "Total tested"] <- covid["South Dakota", "Positive test results"] + covid["South Dakota", "Negative test results"] + covid["South Dakota", "Pending"]
 
 # Wisconsin
@@ -395,4 +387,4 @@ covid["Total", "Total tested"] <- sum(covid[, "Total tested"], na.rm = TRUE)
 
 
 
-write.csv(covid, "covid.csv")
+write.csv(covid, paste0("./testnumbers/", Sys.Date(),".csv"))

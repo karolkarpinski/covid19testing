@@ -1,7 +1,6 @@
 ---
 title: "SARS-CoV-2 testing in the United States"
-author: "Karol Karpinski"
-date: "3/5/2020"
+date: "3/6/2020"
 output: html_document
 ---
 
@@ -16,7 +15,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r echo = FALSE, results = 'asis'}
-covid <- read.csv("covid.csv")
+covid <- read.csv("./testnumbers/2020-03-06.csv")
   
 
 library(knitr)
