@@ -1,23 +1,204 @@
 ---
-title: "SARS-CoV-2 testing in the United States"
-date: "3/6/2020"
-output: html_document
+title: "Covid-19 Testing Progress"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    orientation: rows
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+library(flexdashboard)
+library(dplyr)
+library(DT)
+library(plotly)
+
+today <- read.csv("./testnumbers/2020-03-09.csv")
+all <- read.csv('./testnumbers/all.csv')
+
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Introduction {.sidebar}
+-------------------------------------
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+This website aims to track the numbers of SARC-CoV-2 tests performed across the United States. The data is obtained daily from the websites of state health departments which report that information.
 
-```{r echo = FALSE, results = 'asis'}
-covid <- read.csv("./testnumbers/2020-03-06.csv")
-  
-
-library(knitr)
-kable(covid, col.names = c("State/Territory", "Positive test results", "Negative test results", "Pending results", "Total tested"))
+```{r}
+# shiny inputs defined here
 ```
+
+Row
+-----------------------------------------------------------------------
+
+### States or territories reporting
+
+```{r}
+valueBox(26, icon = "fa-flag-usa")
+```
+
+### Tests per million residents
+
+```{r}
+valueBox(16, icon = "fa-vials")
+```
+
+### Growth in the number of tests compared to the previous day
+
+```{r}
+valueBox("61%", 
+         icon = "fa-chart-line",
+         color = "warning")
+```
+
+### Share of positives
+
+```{r}
+valueBox("9.9%", 
+         icon = "fa-chart-line",
+         color = "warning")
+```
+
+Row  {.tabset data-height=1200}
+-----------------------------------------------------------------------
+
+### March 9
+
+```{r}
+
+today %>%
+  select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 8', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2) %>%
+  formatPercentage('delta', 2)
+
+
+```
+
+### March 8
+
+```{r}
+
+covid <- all %>%
+  filter(date == "2020-03-08")
+
+covid %>%
+  select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2) %>%
+  formatPercentage('delta', 2)
+
+
+```
+
+### March 6
+
+```{r}
+
+covid <- all %>%
+  filter(date == "2020-03-06")
+
+covid %>%
+  select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 5', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2) %>%
+  formatPercentage('delta', 2)
+
+
+```
+
+### March 5
+
+```{r}
+
+
+covid <- all %>%
+  filter(date == "2020-03-05")
+
+covid %>%
+  select(state, total, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2)
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Tests per million residents
+
+```{r}
+
+today$code <- state.abb[match(today$state, state.name)]
+
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+today$rounded <- round(today$tests_per_million, digits = 0)
+
+
+map <- plot_geo(today, locationmode = 'USA-states')
+map <- map %>% add_trace(
+  z = ~rounded, text = NULL, locations = ~code,
+  color = ~tests_per_million, colors = 'Reds'
+) 
+
+map <- map %>% colorbar(title = "Tests per million")
+
+map <- map %>% layout(
+  geo = g
+)
+
+map
+
+
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Number of tests
+
+```{r}
+totals <- all %>%
+  filter(state == 'Total')
+
+fig <- plot_ly(
+  x = totals$date,
+  y = totals$total,
+  name = "Testing totals",
+  type = 'bar'
+)
+
+fig
+
+```
+
+
+### Day-on-day growth in testing
+
+```{r}
+totals <- all %>%
+  filter(state == 'Total')
+
+fig <- plot_ly(
+  x = totals$date,
+  y = totals$delta,
+  name = "Testing totals",
+  type = 'bar'
+) %>%
+  layout(yaxis = list(tickformat = "%"))
+
+fig
+
+```
+

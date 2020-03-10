@@ -8,25 +8,15 @@ library(stringr)
 library(magrittr)
 library(janitor)
 library(tidycensus)
+library(dplyr)
 
-census_api_key("e2345a8d3580e64a9308aa5d869d4b415f245a22", install = TRUE)
+old_file <- './testnumbers/2020-03-08.csv'
+population <- read.csv('./populations.csv')
 
 
 
 covid <- data.frame()
 
-# New York
-
-ny <- read_html("https://www.health.ny.gov/diseases/communicable/coronavirus/")
-
-ny <- ny %>%
-  html_node("#case_count_table") %>%
-  html_table()
-
-covid["New York", "Positive test results"] <- as.numeric(ny[1,2] + ny[1,3])
-covid["New York", "Negative test results"] <- as.numeric(ny[2,2] + ny[2,3])
-covid["New York", "Pending"] <- as.numeric(ny[3,2] + ny[3,3])
-covid["New York", "Total tested"] <- covid["New York", "Positive test results"] + covid["New York", "Negative test results"] + covid["New York", "Pending"]
 
 # Arizona
 
@@ -38,51 +28,52 @@ az_session_1 <- POST(paste0("https://tableau.azdhs.gov/vizql/w/COVID-19Table/v/C
 )), encode = "raw")
 az <- read_csv(paste0("https://tableau.azdhs.gov/vizql/w/COVID-19Table/v/COVID-19table/exportcrosstab/sessions/", headers(az_session)$`x-session-id`, "/views/8275719771277684273_2738315765867498942?charset=utf8&download=true"), col_names = FALSE)
 
-covid["Arizona", "Positive test results"] <- as.numeric(az[2,2] + az[3,2])
-covid["Arizona", "Negative test results"] <- as.numeric(az[5,2])
-covid["Arizona", "Pending"] <- as.numeric(az[4,2])
-covid["Arizona", "Total tested"] <- covid["Arizona", "Positive test results"] + covid["Arizona", "Negative test results"] + covid["Arizona", "Pending"]
+covid["Arizona", "positive"] <- as.numeric(az[2,2] + az[3,2])
+covid["Arizona", "negative"] <- as.numeric(az[5,2])
+covid["Arizona", "pending"] <- as.numeric(az[4,2])
+covid["Arizona", "total"] <- covid["Arizona", "positive"] + covid["Arizona", "negative"] + covid["Arizona", "pending"]
 
 # Arkansas
 
 ar <- read_html("https://www.healthy.arkansas.gov/programs-services/topics/novel-coronavirus")
 
 ar <- ar %>% 
-  html_nodes("table")
-
-covid["Arkansas", "Positive test results"] <- ar %>%
-  html_nodes("tr") %>%
-  extract(3) %>%
-  html_text() %>%
-  str_extract("[0-9]+") %>%
-  as.numeric()
-
-covid["Arkansas", "Negative test results"] <- ar %>%
-  extract(4) %>%
-  html_text() %>%
-  str_extract("[0-9]+") %>%
-  as.numeric()
-
-covid["Arkansas", "Pending"] <- ar %>%
-  extract(2) %>%
-  html_text() %>%
-  str_extract("[0-9]+") %>%
-  as.numeric()
-
-covid["Arkansas", "Total tested"] <- covid["Arkansas", "Positive test results"] + covid["Arkansas", "Negative test results"] + covid["Arkansas", "Pending"]
-
-# Colorado
-
-co <- read_html("https://www.colorado.gov/pacific/cdphe/2019-novel-coronavirus")
-
-co <- co %>%
   html_node("table") %>%
   html_table()
 
-covid["Colorado", "Positive test results"] <- as.numeric(co[1,2])
-covid["Colorado", "Negative test results"] <- as.numeric(co[2,2])
-covid["Colorado", "Pending"] <- as.numeric(co[3,2])
-covid["Colorado", "Total tested"] <- covid["Colorado", "Positive test results"] + covid["Colorado", "Negative test results"] + covid["Colorado", "Pending"]
+covid["Arkansas", "positive"] <- as.numeric(ar[1,2])
+
+covid["Arkansas", "negative"] <- as.numeric(ar[4,2])
+
+covid["Arkansas", "pending"] <- as.numeric(ar[2,2])
+
+covid["Arkansas", "total"] <- covid["Arkansas", "positive"] + covid["Arkansas", "negative"] + covid["Arkansas", "pending"]
+
+# Colorado
+
+co <- read_html("https://docs.google.com/document/d/e/2PACX-1vRSxDeeJEaDxir0cCd9Sfji8ZPKzNaCPZnvRCbG63Oa1ztz4B4r7xG_wsoC9ucd_ei3--Pz7UD50yQD/pub")
+
+co <- co %>%
+  html_node("ul") %>%
+  html_nodes("li")
+
+covid["Colorado", "positive"] <- as.numeric(str_extract(html_text(co[1]),"[0-9]+")) + as.numeric(str_extract(html_text(co[2]),"[0-9]+"))
+covid["Colorado", "negative"] <- as.numeric(str_extract(html_text(co[3]),"[0-9]+"))
+covid["Colorado", "pending"] <- 0
+covid["Colorado", "total"] <- covid["Colorado", "positive"] + covid["Colorado", "negative"] + covid["Colorado", "pending"]
+
+# Delaware
+
+de <- read_html("https://dhss.delaware.gov/dhss/dph/epi/2019novelcoronavirus.html")
+
+de <- de %>%
+  html_node("table") %>%
+  html_table()
+
+covid["Delaware", "positive"] <- as.numeric(de[2,2])
+covid["Delaware", "negative"] <- as.numeric(de[3,2])
+covid["Delaware", "pending"] <- as.numeric(de[4,2])
+covid["Delaware", "total"] <- covid["Delaware", "positive"] + covid["Delaware", "negative"] + covid["Delaware", "pending"]
 
 # Florida
 
@@ -120,22 +111,22 @@ fl_positive_3 <- fl %>%
 
   
 
-covid["Florida", "Positive test results"] <- fl_positive_1 + fl_positive_2 + fl_positive_3
-covid["Florida", "Negative test results"] <- fl %>%
-  html_node("block") %>%
-  html_nodes("div") %>%
-  extract(4) %>%
-  html_text() %>%
-  as.numeric()
-
-covid["Florida", "Pending"] <- fl %>%
+covid["Florida", "positive"] <- fl_positive_1 + fl_positive_2 + fl_positive_3
+covid["Florida", "negative"] <- fl %>%
   html_node("block") %>%
   html_nodes("div") %>%
   extract(5) %>%
   html_text() %>%
   as.numeric()
 
-covid["Florida", "Total tested"] <- covid["Florida", "Positive test results"] + covid["Florida", "Negative test results"] + covid["Florida", "Pending"]
+covid["Florida", "pending"] <- fl %>%
+  html_node("block") %>%
+  html_nodes("div") %>%
+  extract(6) %>%
+  html_text() %>%
+  as.numeric()
+
+covid["Florida", "total"] <- covid["Florida", "positive"] + covid["Florida", "negative"] + covid["Florida", "pending"]
 
 # Idaho
 
@@ -145,10 +136,10 @@ id <- id %>%
   html_node("table") %>%
   html_table
 
-covid["Idaho", "Positive test results"] <- as.numeric(id[4,2])
-covid["Idaho", "Negative test results"] <- as.numeric(id[3,2]) - as.numeric(id[4,2])
-covid["Idaho", "Pending"] <- 0
-covid["Idaho", "Total tested"] <- covid["Idaho", "Positive test results"] + covid["Idaho", "Negative test results"] + covid["Idaho", "Pending"]
+covid["Idaho", "positive"] <- as.numeric(id[4,2])
+covid["Idaho", "negative"] <- as.numeric(id[3,2]) - as.numeric(id[4,2])
+covid["Idaho", "pending"] <- 0
+covid["Idaho", "total"] <- covid["Idaho", "positive"] + covid["Idaho", "negative"] + covid["Idaho", "pending"]
 
 # Illinois 
 
@@ -158,17 +149,24 @@ il <- il %>%
   html_node("table") %>%
   html_table
 
-covid["Illinois", "Positive test results"] <- as.numeric(il[1,2]) + as.numeric(il[2,2])
-covid["Illinois", "Negative test results"] <- as.numeric(il[3,2])
-covid["Illinois", "Pending"] <- as.numeric(il[4,2])
-covid["Illinois", "Total tested"] <- covid["Illinois", "Positive test results"] + covid["Illinois", "Negative test results"] + covid["Illinois", "Pending"]
+covid["Illinois", "positive"] <- as.numeric(il[1,2]) + as.numeric(il[2,2])
+covid["Illinois", "negative"] <- as.numeric(il[3,2])
+covid["Illinois", "pending"] <- as.numeric(il[4,2])
+covid["Illinois", "total"] <- covid["Illinois", "positive"] + covid["Illinois", "negative"] + covid["Illinois", "pending"]
+
+# Iowa
+
+covid["Iowa", "positive"] <- 8
+covid["Iowa", "negative"] <- 32
+covid["Iowa", "pending"] <- 11
+covid["Iowa", "total"] <- covid["Iowa", "positive"] + covid["Iowa", "negative"] + covid["Iowa", "pending"]
 
 # Maryland
 
 md <- read_html("https://phpa.health.maryland.gov/Pages/Novel-coronavirus.aspx")
 
 
-covid["Maryland", "Positive test results"] <- md %>%
+covid["Maryland", "positive"] <- md %>%
   html_node("#ctl00_PlaceHolderMain_ctl02__ControlWrapper_RichHtmlField") %>%
   html_nodes("div div") %>%
   extract(9) %>%
@@ -179,7 +177,7 @@ covid["Maryland", "Positive test results"] <- md %>%
   str_extract("[0-9]+") %>%
   as.numeric()
   
-covid["Maryland", "Negative test results"] <- md %>%
+covid["Maryland", "negative"] <- md %>%
   html_node("#ctl00_PlaceHolderMain_ctl02__ControlWrapper_RichHtmlField") %>%
   html_nodes("div div") %>%
   extract(7) %>%
@@ -190,18 +188,9 @@ covid["Maryland", "Negative test results"] <- md %>%
   str_extract("[0-9]+") %>%
   as.numeric()
 
-covid["Maryland", "Pending"] <- md %>%
-  html_node("#ctl00_PlaceHolderMain_ctl02__ControlWrapper_RichHtmlField") %>%
-  html_nodes("div div") %>%
-  extract(6) %>%
-  html_text() %>%
-  str_split(":") %>%
-  extract2(1) %>%
-  extract(2) %>%
-  str_extract("[0-9]+") %>%
-  as.numeric()
+covid["Maryland", "pending"] <- as.numeric(0)
 
-covid["Maryland", "Total tested"] <- covid["Maryland", "Positive test results"] + covid["Maryland", "Negative test results"] + covid["Maryland", "Pending"]
+covid["Maryland", "total"] <- covid["Maryland", "positive"] + covid["Maryland", "negative"] + covid["Maryland", "pending"]
 
 # Michigan
 
@@ -211,10 +200,10 @@ mi <- mi %>%
   html_node("table") %>%
   html_table()
 
-covid["Michigan", "Positive test results"] <- as.numeric(mi[4,2])
-covid["Michigan", "Negative test results"] <- as.numeric(mi[3,2])
-covid["Michigan", "Pending"] <- as.numeric(mi[5,2])
-covid["Michigan", "Total tested"] <- covid["Michigan", "Positive test results"] + covid["Michigan", "Negative test results"] + covid["Michigan", "Pending"]
+covid["Michigan", "positive"] <- as.numeric(mi[4,2])
+covid["Michigan", "negative"] <- as.numeric(mi[3,2])
+covid["Michigan", "pending"] <- as.numeric(mi[5,2])
+covid["Michigan", "total"] <- covid["Michigan", "positive"] + covid["Michigan", "negative"] + covid["Michigan", "pending"]
 
 # Minnesota
 
@@ -224,21 +213,29 @@ mn <- mn %>%
   html_node("table") %>%
   html_table()
 
-covid["Minnesota", "Positive test results"] <- as.numeric(mn[1,2])
-covid["Minnesota", "Negative test results"] <- as.numeric(mn[2,2])
-covid["Minnesota", "Pending"] <- as.numeric(mn[3,2])
-covid["Minnesota", "Total tested"] <- covid["Minnesota", "Positive test results"] + covid["Minnesota", "Negative test results"] + covid["Minnesota", "Pending"]
+covid["Minnesota", "positive"] <- as.numeric(mn[1,2])
+covid["Minnesota", "negative"] <- as.numeric(mn[2,2])
+covid["Minnesota", "pending"] <- as.numeric(mn[3,2])
+covid["Minnesota", "total"] <- covid["Minnesota", "positive"] + covid["Minnesota", "negative"] + covid["Minnesota", "pending"]
 
 # Mississippi
 
 
-# Montana - to OCR
+# Montana - MANUAL
+
+# Montana
+
+covid["Montana", "positive"] <- 0
+covid["Montana", "negative"] <- 15
+covid["Montana", "pending"] <- 0
+covid["Montana", "total"] <- covid["Montana", "positive"] + covid["Montana", "negative"] + covid["Montana", "pending"]
+
 
 # Nebraska
 
 ne <- read_html("http://dhhs.ne.gov/Pages/Coronavirus.aspx")
 
-covid["Nebraska", "Positive test results"] <- ne %>%
+covid["Nebraska", "positive"] <- ne %>%
   html_node("#ctl00_PlaceHolderMain_ctl08__ControlWrapper_RichHtmlField") %>%
   html_nodes("ul") %>%
   extract(3) %>%
@@ -250,7 +247,7 @@ covid["Nebraska", "Positive test results"] <- ne %>%
   extract(2) %>%
   as.numeric()
   
-covid["Nebraska", "Negative test results"] <- ne %>%
+covid["Nebraska", "negative"] <- ne %>%
   html_node("#ctl00_PlaceHolderMain_ctl08__ControlWrapper_RichHtmlField") %>%
   html_nodes("ul") %>%
   extract(4) %>%
@@ -262,7 +259,7 @@ covid["Nebraska", "Negative test results"] <- ne %>%
   extract(2) %>%
   as.numeric()
 
-covid["Nebraska", "Pending"] <- ne %>%
+covid["Nebraska", "pending"] <- ne %>%
   html_node("#ctl00_PlaceHolderMain_ctl08__ControlWrapper_RichHtmlField") %>%
   html_nodes("ul") %>%
   extract(3) %>%
@@ -274,7 +271,21 @@ covid["Nebraska", "Pending"] <- ne %>%
   extract(2) %>%
   as.numeric()
 
-covid["Nebraska", "Total tested"] <- covid["Nebraska", "Positive test results"] + covid["Nebraska", "Negative test results"] + covid["Nebraska", "Pending"]
+covid["Nebraska", "total"] <- covid["Nebraska", "positive"] + covid["Nebraska", "negative"] + covid["Nebraska", "pending"]
+
+# Nevada
+
+nv <- read_html("http://dpbh.nv.gov/Programs/OPHIE/dta/Hot_Topics/Coronavirus/")
+
+nv <- nv %>%
+  html_node("table") %>%
+  html_table()
+
+covid["Nevada", "positive"] <- as.numeric(nv[3,2])
+covid["Nevada", "negative"] <- as.numeric(nv[4,2])
+covid["Nevada", "pending"] <- 0
+covid["Nevada", "total"] <- covid["Nevada", "positive"] + covid["Nevada", "negative"] + covid["Nevada", "pending"]
+
 
 # New Hampshire
 
@@ -284,10 +295,44 @@ nh <- nh %>%
   html_node("table") %>%
   html_table()
 
-covid["New Hampshire", "Positive test results"] <- as.numeric(nh[1,2]) + as.numeric(nh[3,2])
-covid["New Hampshire", "Negative test results"] <- as.numeric(nh[4,2])
-covid["New Hampshire", "Pending"] <- as.numeric(nh[2,2])
-covid["New Hampshire", "Total tested"] <- covid["New Hampshire", "Positive test results"] + covid["New Hampshire", "Negative test results"] + covid["New Hampshire", "Pending"]
+covid["New Hampshire", "positive"] <- as.numeric(nh[1,2]) + as.numeric(nh[3,2])
+covid["New Hampshire", "negative"] <- as.numeric(nh[4,2])
+covid["New Hampshire", "pending"] <- as.numeric(nh[2,2])
+covid["New Hampshire", "total"] <- covid["New Hampshire", "positive"] + covid["New Hampshire", "negative"] + covid["New Hampshire", "pending"]
+
+# New Jersey
+
+covid["New Jersey", "positive"] <- 11
+covid["New Jersey", "negative"] <- 35
+covid["New Jersey", "pending"] <- 14
+covid["New Jersey", "total"] <- covid["New Jersey", "positive"] + covid["New Jersey", "negative"] + covid["New Jersey", "pending"]
+
+# New Mexico
+
+nm <- read_html("https://cv.nmhealth.org/")
+
+nm <- nm %>%
+  html_node("table") %>%
+  html_table()
+
+covid["New Mexico", "positive"] <- as.numeric(nm[1,2])
+covid["New Mexico", "negative"] <- as.numeric(nm[2,2])
+covid["New Mexico", "pending"] <- 0
+covid["New Mexico", "total"] <- covid["New Mexico", "positive"] + covid["New Mexico", "negative"] + covid["New Mexico", "pending"]
+
+# New York (only NYC)
+
+ny <- read_html("https://www1.nyc.gov/site/doh/health/health-topics/coronavirus.page")
+
+ny <- ny %>%
+  html_node("table") %>%
+  html_table()
+
+covid["New York City", "positive"] <- as.numeric(str_extract(ny[1,2],"[0-9]+"))
+covid["New York City", "negative"] <- as.numeric(ny[2,2])
+covid["New York City", "pending"] <- as.numeric(ny[3,2])
+covid["New York City", "total"] <- covid["New York City", "positive"] + covid["New York City", "negative"] + covid["New York City", "pending"]
+
 
 # Ohio
 
@@ -297,10 +342,10 @@ oh <- oh %>%
   html_node("table") %>%
   html_table()
 
-covid["Ohio", "Positive test results"] <- as.numeric(str_split(oh[1,1], ": ")[[1]][2])
-covid["Ohio", "Negative test results"] <- as.numeric(str_split(oh[1,3], ": ")[[1]][2])
-covid["Ohio", "Pending"] <- as.numeric(str_split(oh[1,2], ": ")[[1]][2])
-covid["Ohio", "Total tested"] <- covid["Ohio", "Positive test results"] + covid["Ohio", "Negative test results"] + covid["Ohio", "Pending"]
+covid["Ohio", "positive"] <- as.numeric(str_split(oh[1,1], ": ")[[1]][2])
+covid["Ohio", "negative"] <- as.numeric(str_split(oh[1,3], ": ")[[1]][2])
+covid["Ohio", "pending"] <- as.numeric(str_split(oh[1,2], ": ")[[1]][2])
+covid["Ohio", "total"] <- covid["Ohio", "positive"] + covid["Ohio", "negative"] + covid["Ohio", "pending"]
 
 # Oregon
 
@@ -310,10 +355,23 @@ or <- or %>%
   html_node("table") %>%
   html_table()
 
-covid["Oregon", "Positive test results"] <- as.numeric(or[2,2])
-covid["Oregon", "Negative test results"] <- as.numeric(or[3,2])
-covid["Oregon", "Pending"] <- as.numeric(or[4,2])
-covid["Oregon", "Total tested"] <- covid["Oregon", "Positive test results"] + covid["Oregon", "Negative test results"] + covid["Oregon", "Pending"]
+covid["Oregon", "positive"] <- as.numeric(str_extract(or[2,2],"[0-9]+"))
+covid["Oregon", "negative"] <- as.numeric(or[3,2])
+covid["Oregon", "pending"] <- as.numeric(or[4,2])
+covid["Oregon", "total"] <- covid["Oregon", "positive"] + covid["Oregon", "negative"] + covid["Oregon", "pending"]
+
+# South Carolina
+
+sc <- read_html("https://www.scdhec.gov/health/infectious-diseases/viruses/coronavirus-disease-2019-covid-19/monitoring-testing-covid-19")
+
+sc <- sc %>%
+  html_node("table") %>%
+  html_table()
+
+covid["South Carolina", "positive"] <- sc[4,2] + sc[5,2]
+covid["South Carolina", "negative"] <- sc[3,2]
+covid["South Carolina", "pending"] <- 0
+covid["South Carolina", "total"] <- covid["South Carolina", "positive"] + covid["South Carolina", "negative"] + covid["South Carolina", "pending"]
 
 # South Dakota
 
@@ -323,10 +381,30 @@ sd <- sd %>%
   html_node("table") %>%
   html_table()
 
-covid["South Dakota", "Positive test results"] <- as.numeric(sd[1,2])
-covid["South Dakota", "Negative test results"] <- as.numeric(sd[2,2])
-covid["South Dakota", "Pending"] <- as.numeric(sd[3,2])
-covid["South Dakota", "Total tested"] <- covid["South Dakota", "Positive test results"] + covid["South Dakota", "Negative test results"] + covid["South Dakota", "Pending"]
+covid["South Dakota", "positive"] <- as.numeric(sd[1,2])
+covid["South Dakota", "negative"] <- as.numeric(sd[2,2])
+covid["South Dakota", "pending"] <- as.numeric(sd[3,2])
+covid["South Dakota", "total"] <- covid["South Dakota", "positive"] + covid["South Dakota", "negative"] + covid["South Dakota", "pending"]
+
+# Vermont
+
+vt <- read_html("https://www.healthvermont.gov/response/infectious-disease/2019-novel-coronavirus")
+
+vt <- vt %>%
+  html_node("table") %>%
+  html_table()
+
+covid["Vermont", "positive"] <- as.numeric(vt[1,2])
+covid["Vermont", "negative"] <- as.numeric(vt[2,2])
+covid["Vermont", "pending"] <- 0
+covid["Vermont", "total"] <- covid["Vermont", "positive"] + covid["Vermont", "negative"] + covid["Vermont", "pending"]
+
+# Virginia
+
+covid["Virginia", "positive"] <- 3
+covid["Virginia", "negative"] <- 38
+covid["Virginia", "pending"] <- 9
+covid["Virginia", "total"] <- covid["Virginia", "positive"] + covid["Virginia", "negative"] + covid["Virginia", "pending"]
 
 # Wisconsin
 
@@ -336,16 +414,16 @@ wi <- wi %>%
   html_node("table") %>%
   html_table()
 
-covid["Wisconsin", "Positive test results"] <- as.numeric(wi[1,2])
-covid["Wisconsin", "Negative test results"] <- as.numeric(wi[2,2])
-covid["Wisconsin", "Pending"] <- as.numeric(wi[3,2])
-covid["Wisconsin", "Total tested"] <- covid["Wisconsin", "Positive test results"] + covid["Wisconsin", "Negative test results"] + covid["Wisconsin", "Pending"]
+covid["Wisconsin", "positive"] <- as.numeric(wi[1,2])
+covid["Wisconsin", "negative"] <- as.numeric(wi[2,2])
+covid["Wisconsin", "pending"] <- 0
+covid["Wisconsin", "total"] <- covid["Wisconsin", "positive"] + covid["Wisconsin", "negative"] + covid["Wisconsin", "pending"]
 
 # District of Columbia
 
 dc <- read_html("https://coronavirus.dc.gov/page/coronavirus-surveillance-data")
 
-covid["District of Columbia", "Positive test results"] <- dc %>%
+covid["District of Columbia", "positive"] <- dc %>%
   html_nodes("div.field-item") %>%
   html_node("ul") %>%
   html_nodes("li") %>%
@@ -356,7 +434,7 @@ covid["District of Columbia", "Positive test results"] <- dc %>%
   extract(2) %>%
   as.numeric()
 
-covid["District of Columbia", "Negative test results"] <- dc %>%
+covid["District of Columbia", "negative"] <- dc %>%
   html_nodes("div.field-item") %>%
   html_node("ul") %>%
   html_nodes("li") %>%
@@ -367,7 +445,7 @@ covid["District of Columbia", "Negative test results"] <- dc %>%
   extract(2) %>%
   as.numeric()
 
-covid["District of Columbia", "Pending"] <- dc %>%
+covid["District of Columbia", "pending"] <- dc %>%
   html_nodes("div.field-item") %>%
   html_node("ul") %>%
   html_nodes("li") %>%
@@ -378,13 +456,38 @@ covid["District of Columbia", "Pending"] <- dc %>%
   extract(2) %>%
   as.numeric()
 
-covid["District of Columbia", "Total tested"] <- covid["District of Columbia", "Positive test results"] + covid["District of Columbia", "Negative test results"] + covid["District of Columbia", "Pending"]
+covid["District of Columbia", "total"] <- covid["District of Columbia", "positive"] + covid["District of Columbia", "negative"] + covid["District of Columbia", "pending"]
 
-covid["Total", "Positive test results"] <- sum(covid[, "Positive test results"], na.rm = TRUE)
-covid["Total", "Negative test results"] <- sum(covid[, "Negative test results"], na.rm = TRUE)
-covid["Total", "Pending"] <- sum(covid[, "Pending"], na.rm = TRUE)
-covid["Total", "Total tested"] <- sum(covid[, "Total tested"], na.rm = TRUE)
+covid$state <- as.character(row.names(covid))
 
 
+old_tests <- read.csv(old_file)
 
-write.csv(covid, paste0("./testnumbers/", Sys.Date(),".csv"))
+covid <- inner_join(population, covid)
+
+
+covid["Total", "positive"] <- sum(covid[, "positive"], na.rm = TRUE)
+covid["Total", "negative"] <- sum(covid[, "negative"], na.rm = TRUE)
+covid["Total", "pending"] <- sum(covid[, "pending"], na.rm = TRUE)
+covid["Total", "total"] <- sum(covid[, "total"], na.rm = TRUE)
+covid["Total", "population"] <- sum(covid[, "population"], na.rm = TRUE)
+covid["Total", "state"] <- "Total"
+
+delta <- old_tests %>%
+  select(state, total) %>%
+  right_join(covid, by = "state") %>%
+  mutate(delta = (total.y/total.x - 1)) %>%
+  select(state,delta)
+
+covid <- left_join(covid, delta)
+
+covid <- covid %>%
+  mutate(tests_per_million = total/(population/1000000)) %>%
+  mutate(pct_positive = positive/(positive+negative))
+  
+
+write.csv(covid, paste0("./testnumbers/", Sys.Date(),".csv"), row.names = FALSE)
+covid$date <- Sys.Date()
+all <- read.csv("./testnumbers/all.csv")
+
+write.csv(all, './testnumbers/all.csv', row.names = FALSE)
