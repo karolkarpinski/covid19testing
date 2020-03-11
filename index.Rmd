@@ -33,19 +33,19 @@ Row
 ### States or territories reporting
 
 ```{r}
-valueBox(26, icon = "fa-flag-usa")
+valueBox(25, icon = "fa-flag-usa")
 ```
 
 ### Tests per million residents
 
 ```{r}
-valueBox(16, icon = "fa-vials")
+valueBox(19, icon = "fa-vials")
 ```
 
 ### Growth in the number of tests compared to the previous day
 
 ```{r}
-valueBox("61%", 
+valueBox("9%", 
          icon = "fa-chart-line",
          color = "warning")
 ```
@@ -53,7 +53,7 @@ valueBox("61%",
 ### Share of positives
 
 ```{r}
-valueBox("9.9%", 
+valueBox("25%", 
          icon = "fa-chart-line",
          color = "warning")
 ```
@@ -61,13 +61,33 @@ valueBox("9.9%",
 Row  {.tabset data-height=1200}
 -----------------------------------------------------------------------
 
+### March 11 - 2.45am
+
+```{r}
+
+covid <- all %>%
+  filter(date == "2020-03-11")
+
+covid %>%
+  select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2) %>%
+  formatPercentage('delta', 2)
+
+
+```
+
 ### March 9
 
 ```{r}
 
-today %>%
+covid <- all %>%
+  filter(date == "2020-03-09")
+
+covid %>%
   select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
-  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 8', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
   formatRound('tests_per_million', 2) %>%
   formatPercentage('pct_positive', 2) %>%
   formatPercentage('delta', 2)
