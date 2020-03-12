@@ -12,7 +12,7 @@ library(dplyr)
 library(DT)
 library(plotly)
 
-today <- read.csv("./testnumbers/2020-03-09.csv")
+today <- read.csv("./testnumbers/2020-03-12.csv")
 all <- read.csv('./testnumbers/all.csv')
 
 ```
@@ -33,19 +33,19 @@ Row
 ### States or territories reporting
 
 ```{r}
-valueBox(25, icon = "fa-flag-usa")
+valueBox(32, icon = "fa-flag-usa")
 ```
 
 ### Tests per million residents
 
 ```{r}
-valueBox(19, icon = "fa-vials")
+valueBox(23, icon = "fa-vials")
 ```
 
 ### Growth in the number of tests compared to the previous day
 
 ```{r}
-valueBox("9%", 
+valueBox("59%", 
          icon = "fa-chart-line",
          color = "warning")
 ```
@@ -53,15 +53,32 @@ valueBox("9%",
 ### Share of positives
 
 ```{r}
-valueBox("25%", 
+valueBox("20%", 
          icon = "fa-chart-line",
          color = "warning")
 ```
 
-Row  {.tabset data-height=1200}
+Row  {.tabset data-height=1400}
 -----------------------------------------------------------------------
 
-### March 11 - 2.45am
+### March 12
+
+```{r}
+
+covid <- all %>%
+  filter(date == "2020-03-12")
+
+covid %>%
+  select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  formatRound('tests_per_million', 2) %>%
+  formatPercentage('pct_positive', 2) %>%
+  formatPercentage('delta', 2)
+
+
+```
+
+### March 11
 
 ```{r}
 
