@@ -70,7 +70,7 @@ covid <- all %>%
 
 covid %>%
   select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
-  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 11', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
   formatRound('tests_per_million', 2) %>%
   formatPercentage('pct_positive', 2) %>%
   formatPercentage('delta', 2)
@@ -87,7 +87,7 @@ covid <- all %>%
 
 covid %>%
   select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
-  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 9', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
   formatRound('tests_per_million', 2) %>%
   formatPercentage('pct_positive', 2) %>%
   formatPercentage('delta', 2)
@@ -104,7 +104,7 @@ covid <- all %>%
 
 covid %>%
   select(state, total, delta, tests_per_million, pct_positive, positive, negative, pending) %>%
-  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 6', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
+  datatable(options = list(dom = 't', pageLength = 50, style = 'bootstrap'), colnames = c('State', 'Total tests', '+ tests since March 8', 'Tests per million', '% positive', '+', '-', 'Pending'), rownames = FALSE) %>%
   formatRound('tests_per_million', 2) %>%
   formatPercentage('pct_positive', 2) %>%
   formatPercentage('delta', 2)

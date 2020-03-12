@@ -383,8 +383,8 @@ nm <- nm %>%
   html_node("table") %>%
   html_table()
 
-covid["New Mexico", "positive"] <- as.numeric(nm[1,2])
-covid["New Mexico", "negative"] <- as.numeric(nm[2,2])
+covid["New Mexico", "positive"] <- as.numeric(nm[1,2]) + as.numeric(nm[2,2])
+covid["New Mexico", "negative"] <- as.numeric(nm[3,2])
 covid["New Mexico", "pending"] <- 0
 covid["New Mexico", "total"] <- covid["New Mexico", "positive"] + covid["New Mexico", "negative"] + covid["New Mexico", "pending"]
 
